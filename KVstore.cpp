@@ -1,5 +1,6 @@
 #include "KVstore.hpp"
 #include <sstream>
+#include <stdexcept>
 #include <string>
 // Function to process SET command
 std::string KVstore::handleSetCommand(const std::vector<std::string> &args) {
@@ -24,6 +25,24 @@ std::string KVstore::handleGetCommand(const std::vector<std::string> &args) {
   }
 }
 
+std::string KVstore::handleDecCommand(const std::vector<std::string> &args) {
+  if (args.size() < 2) {
+    return "Error: DEC requires a key\n";
+  }
+  auto value = unorderedMap.get(args[1]);
+  int newValue = 0;
+
+  if (value.has_value()) {
+    try {
+      newValue = std::stoi(*value);
+    } catch (std::invalid_argument &e) {
+      return std::string("Error: ") + e.what();
+    }
+  }
+  newValue -= 1;
+  unorderedMap.insert(args[1], std::to_string(newValue));
+  return "OK\n";
+}
 std::string
 KVstore::handleIncrementCommand(const std::vector<std::string> &args) {
   if (args.size() < 2) {
@@ -33,7 +52,7 @@ KVstore::handleIncrementCommand(const std::vector<std::string> &args) {
   auto value = unorderedMap.get(args[1]);
   int newValue = 0;
 
-  if (value) {
+  if (value.has_value()) {
     try {
 
       newValue = std::stoi(*value);
@@ -92,6 +111,8 @@ std::string KVstore::processCommand(const std::string &command) {
     return handleExistsCommand(parts);
   } else if (parts[0] == "INC") {
     return handleIncrementCommand(parts);
+  } else if (parts[0] == "DEC") {
+    return handleDecCommand(parts);
   } else {
     return "Error: Unknown command\n";
   }

@@ -13,6 +13,7 @@ public:
   std::string handleDelCommand(const std::vector<std::string> &args);
   std::string handleExistsCommand(const std::vector<std::string> &args);
   std::string handleIncrementCommand(const std::vector<std::string> &args);
+  std::string handleDecCommand(const std::vector<std::string> &args);
 
   UnorderedMap<std::string, std::string> unorderedMap;
 
