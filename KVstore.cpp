@@ -1,7 +1,9 @@
 #include "KVstore.hpp"
+#include <mutex>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 // Function to process SET command
 std::string KVstore::handleSetCommand(const std::vector<std::string> &args) {
   if (args.size() < 3) {
@@ -12,12 +14,59 @@ std::string KVstore::handleSetCommand(const std::vector<std::string> &args) {
   return "OK\n";
 }
 
+std::string KVstore::rightPushVector(const std::vector<std::string> &args) {
+  if (args.size() < 3) {
+    return "Error: RPUSH requires a key and a value\n";
+  }
+
+  bool exists = unorderedMapOfVectors.contains(args[1]);
+  std::vector<std::string> *foundVector = nullptr;
+  unorderedMapOfVectors.get(args[1], &foundVector);
+
+  if (exists) {
+    {
+      std::unique_lock<std::mutex> lock(vector_mutex);
+      (*foundVector).push_back(args[2]);
+    }
+
+  } else {
+    {
+      std::unique_lock<std::mutex> lock(vector_mutex);
+      std::vector<std::string> created;
+      created.push_back(args[2]);
+      lock.unlock();
+      unorderedMapOfVectors.insert(args[1], (created));
+    }
+  }
+
+  return "OK\n";
+}
+std::string
+KVstore::getVectorElementByIndex(const std::vector<std::string> &args) {
+  if (args.size() < 3) {
+    return "Error: LINDEX requires a key and a list index\n";
+  }
+  bool exists = unorderedMapOfVectors.contains(args[1]);
+  std::vector<std::string> *foundVector = nullptr;
+  unorderedMapOfVectors.get(args[1], &foundVector);
+  if (!exists) {
+    return "Error: list doesn't exist\n";
+  }
+  std::unique_lock<std::mutex> lock(vector_mutex);
+  int index = std::stoi(args[2]);
+  if (index < 0 || index >= ((*foundVector).size())) {
+    return "Error: index out of range\n";
+  }
+  return (*foundVector).at(std::stoi(args[2])).c_str();
+}
+
 // Function to process GET command
 std::string KVstore::handleGetCommand(const std::vector<std::string> &args) {
   if (args.size() < 2) {
     return "Error: GET requires a key\n";
   }
-  auto it = unorderedMap.get(args[1]);
+  std::string *it = nullptr;
+  unorderedMap.get(args[1], &it);
   if (it) {
     return *it + "\n";
   } else {
@@ -29,10 +78,11 @@ std::string KVstore::handleDecCommand(const std::vector<std::string> &args) {
   if (args.size() < 2) {
     return "Error: DEC requires a key\n";
   }
-  auto value = unorderedMap.get(args[1]);
+  std::string *value = nullptr;
+  unorderedMap.get(args[1], &value);
   int newValue = 0;
 
-  if (value.has_value()) {
+  if (value) {
     try {
       newValue = std::stoi(*value);
     } catch (std::invalid_argument &e) {
@@ -49,10 +99,11 @@ KVstore::handleIncrementCommand(const std::vector<std::string> &args) {
     return "Error: INC requires a key\n";
   }
 
-  auto value = unorderedMap.get(args[1]);
+  std::string *value = nullptr;
+  unorderedMap.get(args[1], &value);
   int newValue = 0;
 
-  if (value.has_value()) {
+  if (value) {
     try {
 
       newValue = std::stoi(*value);
@@ -113,6 +164,10 @@ std::string KVstore::processCommand(const std::string &command) {
     return handleIncrementCommand(parts);
   } else if (parts[0] == "DEC") {
     return handleDecCommand(parts);
+  } else if (parts[0] == "RPUSH") {
+    return rightPushVector(parts);
+  } else if (parts[0] == "LINDEX") {
+    return getVectorElementByIndex(parts);
   } else {
     return "Error: Unknown command\n";
   }

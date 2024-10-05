@@ -1,6 +1,7 @@
 #pragma once
 #include "UnorderedMap.hpp"
 #include <string>
+#include <vector>
 
 #define PORT 6379
 #define BUFFER_SIZE 1024
@@ -14,8 +15,11 @@ public:
   std::string handleExistsCommand(const std::vector<std::string> &args);
   std::string handleIncrementCommand(const std::vector<std::string> &args);
   std::string handleDecCommand(const std::vector<std::string> &args);
-
-  UnorderedMap<std::string, std::string> unorderedMap;
+  std::string rightPushVector(const std::vector<std::string> &args);
+  std::string getVectorElementByIndex(const std::vector<std::string> &args);
 
 private:
+  UnorderedMap<std::string, std::string> unorderedMap;
+  UnorderedMap<std::string, std::vector<std::string>> unorderedMapOfVectors;
+  std::mutex vector_mutex;
 };

@@ -1,9 +1,7 @@
 #pragma once
 #include <cstddef>
 #include <functional>
-#include <iostream>
 #include <mutex>
-#include <optional>
 #include <shared_mutex>
 #include <vector>
 template <typename KeyType, typename ValueType> class UnorderedMap {
@@ -28,7 +26,7 @@ public:
     }
     table[index] = {true, key, value};
   }
-  std::optional<ValueType> get(const KeyType &key) {
+  void get(const KeyType &key, ValueType **value) {
     std::shared_lock<std::shared_mutex> lock(mutex);
     size_t index = hash(key) % capacity;
     // remember to avoid infinite loop
@@ -36,20 +34,27 @@ public:
 
     while (table.at(index).occupied) {
       if (table.at(index).key == key) {
-        return table.at(index).value;
+        *value = &(table.at(index).value);
+        break;
       }
       index = (index + 1) % capacity;
       if (index == startIndex) {
         break;
       }
     }
-
-    return std::nullopt;
   }
 
-  bool contains(const KeyType &key) { return get(key).has_value(); }
+  bool contains(const KeyType &key) {
+    ValueType *value = nullptr;
+    get(key, &value);
+    if (value) {
+      return true;
+    }
+    return false;
+  }
 
   bool erase(const KeyType &key) {
+    std::unique_lock<std::shared_mutex> lock(mutex);
     size_t index = hash(key) % capacity;
     size_t startIndex = index;
     while (table.at(index).occupied) {
