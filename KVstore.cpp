@@ -1,4 +1,5 @@
 #include "KVstore.hpp"
+#include <iostream>
 #include <mutex>
 #include <sstream>
 #include <stdexcept>
@@ -58,6 +59,38 @@ KVstore::getVectorElementByIndex(const std::vector<std::string> &args) {
     return "Error: index out of range\n";
   }
   return (*foundVector).at(std::stoi(args[2])).c_str();
+}
+
+std::string KVstore::getVectorRangle(const std::vector<std::string> &args) {
+
+  if (args.size() < 4) {
+    return "Error: Rangle requires an identifier, a start index and an end "
+           "index\n";
+  }
+  std::vector<std::string> *foundVector = nullptr;
+  unorderedMapOfVectors.get(args[1], &foundVector);
+  int startIndex = std::stoi(args[2]);
+  int endIndex = std::stoi(args[3]);
+  if ((startIndex < 0 || startIndex >= foundVector->size()) ||
+      (endIndex < 0 || endIndex >= foundVector->size())) {
+    return "Error: index out of range \n";
+  }
+  std::unique_lock<std::mutex> lock(vector_mutex);
+  int index = std::stoi(args[2]);
+  std::vector<std::string>::const_iterator itStart =
+      foundVector->begin() + startIndex;
+  std::vector<std::string>::const_iterator itEnd =
+      foundVector->begin() + endIndex;
+  std::string result =
+      "Printing list elements from: " + args[2] + " to: " + args[3] + "\n";
+  while (itStart != foundVector->end() && itEnd != foundVector->end() &&
+         itStart <= itEnd) {
+    result += (*itStart) + " ";
+
+    itStart++;
+  }
+
+  return result + " Ok\n";
 }
 
 // Function to process GET command
@@ -167,7 +200,9 @@ std::string KVstore::processCommand(const std::string &command) {
   } else if (parts[0] == "RPUSH") {
     return rightPushVector(parts);
   } else if (parts[0] == "LINDEX") {
-    return getVectorElementByIndex(parts);
+    return rightPushVector(parts);
+  } else if (parts[0] == "LRANGE") {
+    return getVectorRangle(parts);
   } else {
     return "Error: Unknown command\n";
   }
