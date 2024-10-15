@@ -170,6 +170,22 @@ std::string KVstore::handleDelCommand(const std::vector<std::string> &args) {
   }
   return "Key doesn't exist\n";
 }
+std::string KVstore::removeVectorElement(const std::vector<std::string> &args) {
+  if (args.size() < 2) {
+    return "Error: LPOP requires an argument\n";
+  }
+  std::vector<std::string> *foundVector = nullptr;
+  unorderedMapOfVectors.get(args[1], &foundVector);
+  if (!foundVector) {
+    return "Error: List not found \n";
+  }
+  if (!foundVector->size()) {
+    return "Error: List is empty\n";
+  }
+  foundVector->erase(foundVector->begin(), foundVector->begin() + 1);
+
+  return "Element removed successfully\n";
+}
 std::string KVstore::processCommand(const std::string &command) {
   // Split the command string into parts
   std::stringstream ss(command);
@@ -200,9 +216,11 @@ std::string KVstore::processCommand(const std::string &command) {
   } else if (parts[0] == "RPUSH") {
     return rightPushVector(parts);
   } else if (parts[0] == "LINDEX") {
-    return rightPushVector(parts);
+    return getVectorElementByIndex(parts);
   } else if (parts[0] == "LRANGE") {
     return getVectorRangle(parts);
+  } else if (parts[0] == "LPOP") {
+    return removeVectorElement(parts);
   } else {
     return "Error: Unknown command\n";
   }

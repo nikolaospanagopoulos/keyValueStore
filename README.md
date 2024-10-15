@@ -17,6 +17,11 @@ A lightweight, multi-threaded in-memory key-value store built with C++. This pro
 - **DEL key**: Deletes the specified `key` and its associated value.
 - **EXISTS key**: Checks if the specified `key` exists in the store.
 - **INC key**: Increments the integer value of the specified `key`.
+- **DEC key**: Decrements the integer value of the specified `key`.
+- **RPUSH**: Pushes into a list `key` the specified value `value` (if list doesn't exist, will be created).
+- **LINDEX**: Retrieves the value of the list specified `key` at specified `index`.
+- **LRANGE**: Retrieves the values of the list specified `key` at specified `range`.
+- **LPOP**: Removes the first element of the list specified by `key`.
 
 ## How It Works
 
@@ -73,6 +78,18 @@ Once the server is running, you can interact with it using commands:
     DEL mykey
     OK
     GET mykey
+    RPUSH mylist 2
+    OK
+    LINDEX mylist 0
+    2
+    RPUSH mylist 3
+    OK
+    LRANGE mylist 0 1
+    2 3
+    LPOP mylist
+    OK
+    LINDEX mylist 0
+    3
     (nil)
       ```
 

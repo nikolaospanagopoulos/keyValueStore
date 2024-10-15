@@ -18,6 +18,7 @@ public:
   std::string rightPushVector(const std::vector<std::string> &args);
   std::string getVectorElementByIndex(const std::vector<std::string> &args);
   std::string getVectorRangle(const std::vector<std::string> &args);
+  std::string removeVectorElement(const std::vector<std::string> &args);
 
 private:
   UnorderedMap<std::string, std::string> unorderedMap;
